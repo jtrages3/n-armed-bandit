@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slot Machine Task</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=DM+Sans:wght@400;600;700;800&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #060b14;
+    --surface:   #0d1829;
+    --surface2:  #0f172a;
+    --border:    #1e293b;
+    --border2:   #334155;
+    --text:      #e2e8f0;
+    --muted:     #94a3b8;
+    --dim:       #475569;
+    --teal:      #38BDF8;
+    --amber:     #FB923C;
+    --green:     #4ADE80;
+    --red:       #F87171;
+    --purple:    #C084FC;
+    --yellow:    #FBBF24;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .mono { font-family: 'JetBrains Mono', 'Fira Mono', monospace; }
+
+  /* ── SCREENS ── */
+  .screen { display: none; width: 100%; max-width: 900px; padding: 40px 24px; flex-direction: column; align-items: center; gap: 24px; }
+  .screen.active { display: flex; }
+
+  /* ── WELCOME ── */
+  .welcome-tag { font-size: 11px; color: var(--teal); letter-spacing: 4px; font-family: 'JetBrains Mono', monospace; }
+  .welcome-title { font-size: 42px; font-weight: 800; letter-spacing: -1.5px; color: #f1f5f9; text-align: center; line-height: 1.1; }
+  .welcome-title span { color: var(--teal); }
+  .welcome-desc {
+    font-size: 16px; color: var(--muted); text-align: center;
+    max-width: 560px; line-height: 1.8;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px 28px;
+  }
+  .welcome-desc strong { color: var(--text); }
+  .welcome-rules { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 520px; }
+  .rule { display: flex; align-items: flex-start; gap: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; }
+  .rule-num { width: 28px; height: 28px; min-width: 28px; background: var(--teal); color: #060b14; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; margin-top: 1px; }
+  .rule-text { font-size: 15px; color: var(--text); line-height: 1.5; }
+  .rule-text em { color: var(--teal); font-style: normal; font-weight: 700; }
+
+  .settings-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; justify-content: center; }
+  .setting-group { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+  .setting-group label { font-size: 12px; color: var(--muted); font-family: 'JetBrains Mono', monospace; letter-spacing: 1px; }
+  .setting-group select {
+    background: var(--surface2); border: 1px solid var(--border2); color: var(--text);
+    padding: 8px 14px; border-radius: 8px; font-size: 14px; cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .setting-group input[type=number] {
+    background: var(--surface2); border: 1px solid var(--border2); color: var(--text);
+    padding: 8px 12px; border-radius: 8px; font-size: 14px; width: 80px; text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .btn-primary {
+    background: var(--teal); border: none; color: #060b14;
+    padding: 14px 48px; border-radius: 12px; cursor: pointer;
+    font-size: 18px; font-weight: 800; font-family: 'DM Sans', sans-serif;
+    transition: transform 0.1s, filter 0.1s;
+  }
+  .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+
+  /* ── GAME SCREEN ── */
+  #screen-game { justify-content: flex-start; padding-top: 0; }
+
+  .game-header {
+    width: 100%; background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 14px 24px; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 10;
+  }
+  .game-title { font-size: 15px; font-weight: 700; color: #f1f5f9; }
+  .game-title span { color: var(--teal); font-weight: 400; }
+  .trial-info { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .trial-label { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; letter-spacing: 2px; }
+  .trial-num { font-size: 22px; font-weight: 800; color: var(--text); font-family: 'JetBrains Mono', monospace; }
+  .score-box { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+  .score-label { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; letter-spacing: 2px; }
+  .score-val { font-size: 22px; font-weight: 800; color: var(--teal); font-family: 'JetBrains Mono', monospace; }
+
+  /* Progress bar */
+  .progress-bar-wrap { width: 100%; background: var(--surface); padding: 0 24px 12px; }
+  .progress-track { background: var(--border); border-radius: 4px; height: 5px; }
+  .progress-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--teal), #0ea5e9); transition: width 0.4s ease; }
+
+  /* Feedback zone */
+  .feedback-zone {
+    min-height: 80px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 6px;
+    width: 100%;
+  }
+  .feedback-points {
+    font-size: 52px; font-weight: 800; font-family: 'JetBrains Mono', monospace;
+    color: #ffffff;
+    transition: opacity 0.5s ease;
+    text-shadow: 0 0 30px rgba(255,255,255,0.3);
+  }
+  .feedback-points.hidden { opacity: 0; }
+  .feedback-sub {
+    font-size: 14px; color: var(--muted); font-family: 'JetBrains Mono', monospace;
+    transition: opacity 0.5s ease;
+  }
+  .feedback-sub.hidden { opacity: 0; }
+
+  /* Instruction message */
+  .instruction {
+    font-size: 16px; color: var(--muted); text-align: center;
+    min-height: 28px; transition: opacity 0.3s;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .instruction.highlight { color: var(--text); }
+
+  /* Slot machine grid */
+  .slots-grid {
+    display: grid;
+    gap: 14px;
+    width: 100%;
+  }
+
+  .slot-btn {
+    background: var(--surface); border: 2px solid var(--border);
+    border-radius: 16px; padding: 28px 20px;
+    cursor: pointer; transition: all 0.15s;
+    font-family: inherit; text-align: left;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .slot-btn:disabled { cursor: not-allowed; opacity: 0.45; }
+  .slot-btn:not(:disabled):hover {
+    border-color: var(--slot-color);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--slot-color) 25%, transparent);
+    transform: translateY(-2px);
+  }
+  .slot-btn:not(:disabled):active { transform: translateY(0); }
+  .slot-btn.chosen {
+    border-color: var(--slot-color);
+    background: color-mix(in srgb, var(--slot-color) 8%, var(--surface));
+    box-shadow: 0 0 28px color-mix(in srgb, var(--slot-color) 20%, transparent);
+  }
+  .slot-btn.flash {
+    background: color-mix(in srgb, var(--slot-color) 20%, var(--surface));
+  }
+
+  .slot-top { display: flex; align-items: center; justify-content: space-between; }
+  .slot-name { font-size: 26px; font-weight: 800; font-family: 'JetBrains Mono', monospace; color: var(--slot-color); }
+
+
+
+
+  /* Next trial button */
+  .btn-next {
+    background: var(--surface2); border: 2px solid var(--teal);
+    color: var(--teal); padding: 14px 48px; border-radius: 12px;
+    cursor: pointer; font-size: 17px; font-weight: 700;
+    font-family: 'DM Sans', sans-serif; transition: all 0.15s;
+    display: none;
+  }
+  .btn-next:hover { background: #1e3a4a; transform: translateY(-1px); }
+  .btn-next.visible { display: block; }
+
+  /* ── GUESS SCREEN ── */
+  .guess-title { font-size: 32px; font-weight: 800; color: #f1f5f9; text-align: center; letter-spacing: -0.5px; }
+  .guess-desc { font-size: 16px; color: var(--muted); text-align: center; max-width: 500px; line-height: 1.7; }
+  .guess-grid { display: grid; gap: 14px; width: 100%; }
+  .guess-btn {
+    background: var(--surface); border: 2px solid var(--border);
+    border-radius: 14px; padding: 22px 24px;
+    cursor: pointer; font-family: inherit; text-align: left;
+    display: flex; align-items: center; gap: 18px;
+    transition: all 0.15s;
+  }
+  .guess-btn:hover { border-color: var(--slot-color); transform: translateY(-1px); }
+  .guess-btn.selected {
+    border-color: var(--slot-color);
+    background: color-mix(in srgb, var(--slot-color) 10%, var(--surface));
+    box-shadow: 0 0 24px color-mix(in srgb, var(--slot-color) 20%, transparent);
+  }
+  .guess-circle {
+    width: 44px; height: 44px; min-width: 44px; border-radius: 50%;
+    background: var(--slot-color); display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 800; color: #060b14; font-family: 'JetBrains Mono', monospace;
+  }
+  .guess-label { font-size: 20px; font-weight: 700; color: var(--text); }
+
+  .btn-submit-guess {
+    background: var(--yellow); border: none; color: #060b14;
+    padding: 14px 48px; border-radius: 12px; cursor: pointer;
+    font-size: 17px; font-weight: 800; font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s; opacity: 0.4; pointer-events: none;
+  }
+  .btn-submit-guess.active { opacity: 1; pointer-events: all; }
+  .btn-submit-guess.active:hover { filter: brightness(1.1); transform: translateY(-1px); }
+
+  /* ── REVEAL SCREEN ── */
+  .reveal-title { font-size: 32px; font-weight: 800; color: #f1f5f9; text-align: center; letter-spacing: -0.5px; }
+  .reveal-subtitle { font-size: 16px; color: var(--muted); text-align: center; max-width: 500px; line-height: 1.7; }
+
+  .reveal-grid { display: grid; gap: 14px; width: 100%; }
+  .reveal-card {
+    background: var(--surface); border: 2px solid var(--border);
+    border-radius: 14px; padding: 20px 24px;
+    display: grid; grid-template-columns: auto 1fr auto auto;
+    align-items: center; gap: 16px;
+    transition: border-color 0.4s, box-shadow 0.4s;
+  }
+  .reveal-card.winner {
+    border-color: var(--yellow);
+    box-shadow: 0 0 32px color-mix(in srgb, var(--yellow) 25%, transparent);
+    background: color-mix(in srgb, var(--yellow) 6%, var(--surface));
+  }
+  .reveal-card.guessed { border-color: var(--slot-color); }
+  .reveal-circle {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: var(--slot-color); display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 800; color: #060b14; font-family: 'JetBrains Mono', monospace;
+  }
+  .reveal-name { font-size: 18px; font-weight: 700; color: var(--text); }
+  .reveal-stat { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .reveal-stat-lbl { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; letter-spacing: 1px; }
+  .reveal-stat-val { font-size: 22px; font-weight: 800; font-family: 'JetBrains Mono', monospace; }
+  .reveal-badge {
+    font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace; opacity: 0; transition: opacity 0.5s;
+  }
+  .reveal-badge.show { opacity: 1; }
+  .badge-winner { background: var(--yellow); color: #060b14; }
+  .badge-guess { background: var(--teal); color: #060b14; }
+  .badge-correct { background: var(--green); color: #060b14; }
+
+  .reveal-result-box {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px 28px; text-align: center; width: 100%; max-width: 520px;
+  }
+  .reveal-result-title { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
+  .reveal-result-sub { font-size: 15px; color: var(--muted); line-height: 1.6; }
+
+  .btn-play-again {
+    background: var(--surface2); border: 2px solid var(--teal); color: var(--teal);
+    padding: 12px 36px; border-radius: 12px; cursor: pointer;
+    font-size: 16px; font-weight: 700; font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+  }
+  .btn-play-again:hover { background: #1e3a4a; transform: translateY(-1px); }
+
+  @media (max-width: 600px) {
+    .slots-grid { grid-template-columns: 1fr 1fr; }
+    .welcome-title { font-size: 30px; }
+    .reveal-card { grid-template-columns: auto 1fr; grid-template-rows: auto auto; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ WELCOME SCREEN ═══ -->
+<div class="screen active" id="screen-welcome">
+  <div class="welcome-tag mono">DECISION MAKING TASK</div>
+  <div class="welcome-title">Slot Machine<br><span>Experiment</span></div>
+
+  <div class="welcome-desc">
+    You will be choosing between slot machines to earn points.
+    Your goal is to <strong>accumulate as many points as possible</strong>.
+  </div>
+
+  <div class="welcome-rules">
+    <div class="rule">
+      <div class="rule-num">1</div>
+      <div class="rule-text">On each trial, <em>choose one of the slot machines</em> by clicking it.</div>
+    </div>
+    <div class="rule">
+      <div class="rule-num">2</div>
+      <div class="rule-text">You will see <em>how many points you earned</em> from your choice.</div>
+    </div>
+    <div class="rule">
+      <div class="rule-num">3</div>
+      <div class="rule-text">Click <em>Next Trial</em> to continue. The points display will clear before your next choice.</div>
+    </div>
+    <div class="rule">
+      <div class="rule-num">4</div>
+      <div class="rule-text">At the end, you will be asked <em>which machine paid off the most</em>.</div>
+    </div>
+  </div>
+
+  <div class="settings-row">
+    <div class="setting-group">
+      <label>NUMBER OF MACHINES</label>
+      <select id="sel-arms">
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4" selected>4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+      </select>
+    </div>
+    <div class="setting-group">
+      <label>NUMBER OF TRIALS</label>
+      <input type="number" id="inp-trials" value="50" min="10" max="300" step="10">
+    </div>
+  </div>
+
+  <button class="btn-primary" onclick="startGame()">Begin Task →</button>
+</div>
+
+<!-- ═══ GAME SCREEN ═══ -->
+<div class="screen" id="screen-game" style="padding:0; gap:0;">
+  <div class="game-header">
+    <div>
+      <div class="game-title">Slot Machine <span>Task</span></div>
+    </div>
+    <div class="trial-info">
+      <div class="trial-label">TRIAL</div>
+      <div class="trial-num" id="trial-display">1</div>
+    </div>
+    <div class="score-box">
+      <div class="score-label">TRIALS</div>
+      <div class="score-val" id="trials-left" style="font-size:15px;color:var(--muted)">—</div>
+    </div>
+  </div>
+
+  <div class="progress-bar-wrap">
+    <div class="progress-track">
+      <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <div style="width:100%;max-width:900px;padding:20px 24px 0;display:flex;flex-direction:column;align-items:center;gap:20px;">
+
+    <!-- Feedback zone -->
+    <div class="feedback-zone">
+      <div class="feedback-points hidden" id="feedback-pts">+57</div>
+      <div class="feedback-sub hidden" id="feedback-sub">points</div>
+    </div>
+
+    <!-- Instruction -->
+    <div class="instruction" id="instruction">Choose a slot machine</div>
+
+    <!-- Slot buttons -->
+    <div class="slots-grid" id="slots-grid"></div>
+
+    <!-- Next trial button -->
+    <button class="btn-next" id="btn-next" onclick="nextTrial()">Next Trial →</button>
+
+    <div style="height:20px;"></div>
+  </div>
+</div>
+
+<!-- ═══ GUESS SCREEN ═══ -->
+<div class="screen" id="screen-guess">
+  <div class="guess-title">Which machine paid off the most?</div>
+  <div class="guess-desc">
+    Based on your experience over <span id="guess-trial-count">100</span> trials,
+    which slot machine do you think had the <strong>highest average payoff</strong>?
+  </div>
+  <div class="guess-grid" id="guess-grid"></div>
+  <button class="btn-submit-guess" id="btn-submit-guess" onclick="submitGuess()">Reveal the Answer →</button>
+</div>
+
+<!-- ═══ REVEAL SCREEN ═══ -->
+<div class="screen" id="screen-reveal">
+  <div class="reveal-title">Results Revealed</div>
+  <div class="reveal-subtitle" id="reveal-subtitle"></div>
+  <div class="reveal-grid" id="reveal-grid"></div>
+  <div class="reveal-result-box" id="reveal-result-box"></div>
+  <button class="btn-play-again" onclick="playAgain()">↺ Play Again</button>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════
+const ARM_COLORS = ["#38BDF8","#FB923C","#4ADE80","#C084FC","#F472B6","#FBBF24"];
+const ARM_NAMES  = ["A","B","C","D","E","F"];
+
+// Task parameters — match Daw 2006 defaults
+// ── Daw et al. (2006) exact parameters ──────────────────
+const LAMBDA   = 0.9836;  // decay parameter (mean-reversion rate)
+const THETA    = 50;      // decay center (mean reverts toward this)
+const SIGMA_D  = 2.8;     // diffusion noise std dev (ν ~ N(0, σd²))
+const SIGMA_O  = 4;       // observation noise std dev (payoff ~ N(μ, σo²))
+const MU_INIT  = 50;      // initial mean for each arm
+const MU_BOUNDS = [1, 100]; // hard clamp so payoffs stay in valid range
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+let nArms, maxTrials;
+let arms = [];
+let trialNum = 0;
+let lastChosen = null;
+let phase = "choose";   // "choose" | "chosen"
+let guessedArm = null;
+let trueMeanHistory = [];
+
+// ═══════════════════════════════════════════════════════
+// MATH HELPERS
+// ═══════════════════════════════════════════════════════
+function randn() {
+  const u1 = Math.random(), u2 = Math.random();
+  return Math.sqrt(-2 * Math.log(Math.max(u1,1e-10))) * Math.cos(2*Math.PI*u2);
+}
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+function diffuseArms() {
+  // Daw 2006 decaying Gaussian random walk:
+  // μᵢ,ₜ₊₁ = λ·μᵢ,ₜ + (1-λ)·θ + ν,  ν ~ N(0, σd²)
+  arms.forEach(arm => {
+    const nu = randn() * SIGMA_D;
+    arm.trueMean = clamp(
+      LAMBDA * arm.trueMean + (1 - LAMBDA) * THETA + nu,
+      MU_BOUNDS[0], MU_BOUNDS[1]
+    );
+  });
+}
+
+function sampleReward(trueMean) {
+  // Payoff ~ N(μᵢ,ₜ , σo²), rounded to nearest integer, clamped 1–100
+  return clamp(Math.round(trueMean + randn() * SIGMA_O), 1, 100);
+}
+
+// ═══════════════════════════════════════════════════════
+// BUILD INITIAL ARMS
+// ═══════════════════════════════════════════════════════
+function buildArms(n) {
+  // All arms start at the decay center (theta=50) with tiny jitter.
+  // This matches the paper's intent: arms are indistinguishable at trial 1
+  // and diverge only through the random walk — no arm gets a head start.
+  return Array.from({length: n}, (_, i) => ({
+    trueMean:     clamp(THETA + randn() * SIGMA_D, MU_BOUNDS[0], MU_BOUNDS[1]),
+    rewardHistory:[],
+    chosenCount:  0,
+    earnedTotal:  0,
+  }));
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER SLOTS
+// ═══════════════════════════════════════════════════════
+function renderSlots() {
+  const grid = document.getElementById("slots-grid");
+  // Choose column layout based on arm count
+  const cols = nArms <= 3 ? nArms : nArms <= 4 ? 4 : nArms <= 6 ? 3 : 2;
+  grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
+  grid.innerHTML = arms.map((arm, i) => {
+    const color = ARM_COLORS[i];
+    const isChosen = lastChosen === i;
+    const disabled = (phase === "chosen");
+
+    return `
+      <button class="slot-btn${isChosen ? " chosen" : ""}"
+        style="--slot-color:${color}"
+        ${disabled ? "disabled" : ""}
+        onclick="chooseArm(${i})">
+        <div class="slot-top">
+          <div class="slot-name">Machine ${ARM_NAMES[i]}</div>
+        </div>
+      </button>
+    `;
+  }).join("");
+}
+
+// ═══════════════════════════════════════════════════════
+// CHOOSE ARM
+// ═══════════════════════════════════════════════════════
+function chooseArm(i) {
+  if (phase !== "choose") return;
+  phase = "chosen";
+  lastChosen = i;
+
+  const reward = sampleReward(arms[i].trueMean);
+  lastReward = reward;
+  arms[i].rewardHistory.push(reward);
+  arms[i].chosenCount++;
+  arms[i].earnedTotal += reward;
+
+  // Update UI
+  const pts = document.getElementById("feedback-pts");
+  const sub = document.getElementById("feedback-sub");
+  pts.textContent = reward;
+  pts.className = "feedback-points";
+  sub.className = "feedback-sub";
+
+  document.getElementById("instruction").textContent = "Click Next Trial to continue";
+  document.getElementById("instruction").classList.add("highlight");
+  document.getElementById("btn-next").classList.add("visible");
+
+  // Auto-hide reward after 1 second (matches Daw 2006: points shown for 1 sec)
+  setTimeout(() => {
+    document.getElementById("feedback-pts").classList.add("hidden");
+    document.getElementById("feedback-sub").classList.add("hidden");
+  }, 1000);
+
+  renderSlots();
+  updateHeader();
+}
+
+// ═══════════════════════════════════════════════════════
+// NEXT TRIAL
+// ═══════════════════════════════════════════════════════
+function nextTrial() {
+  document.getElementById("feedback-pts").classList.add("hidden");
+  document.getElementById("feedback-sub").classList.add("hidden");
+  document.getElementById("btn-next").classList.remove("visible");
+
+  trialNum++;
+  diffuseArms();
+  trueMeanHistory.push(arms.map(a => a.trueMean));
+
+  if (trialNum >= maxTrials) {
+    showGuessScreen();
+    return;
+  }
+
+  phase = "choose";
+  lastChosen = null;
+
+  document.getElementById("instruction").textContent = "Choose a slot machine";
+  document.getElementById("instruction").classList.remove("highlight");
+
+  renderSlots();
+  updateHeader();
+}
+
+function updateHeader() {
+  document.getElementById("trial-display").textContent = trialNum + 1;
+  document.getElementById("trials-left").textContent = `${maxTrials - trialNum} left`;
+  const pct = (trialNum / maxTrials) * 100;
+  document.getElementById("progress-fill").style.width = pct + "%";
+}
+
+// ═══════════════════════════════════════════════════════
+// GUESS SCREEN
+// ═══════════════════════════════════════════════════════
+function showGuessScreen() {
+  showScreen("screen-guess");
+  document.getElementById("guess-trial-count").textContent = maxTrials;
+
+  const grid = document.getElementById("guess-grid");
+  grid.style.gridTemplateColumns = nArms <= 3 ? `repeat(${nArms}, 1fr)` : nArms === 4 ? "repeat(4,1fr)" : "repeat(3,1fr)";
+  grid.innerHTML = arms.map((_, i) => {
+    const color = ARM_COLORS[i];
+    return `
+      <button class="guess-btn" style="--slot-color:${color}" onclick="selectGuess(${i})" id="guess-btn-${i}">
+        <div class="guess-circle">${ARM_NAMES[i]}</div>
+        <div class="guess-label">Machine ${ARM_NAMES[i]}</div>
+      </button>
+    `;
+  }).join("");
+}
+
+function selectGuess(i) {
+  guessedArm = i;
+  // Deselect all
+  arms.forEach((_, j) => {
+    document.getElementById(`guess-btn-${j}`).classList.remove("selected");
+  });
+  document.getElementById(`guess-btn-${i}`).classList.add("selected");
+  document.getElementById("btn-submit-guess").classList.add("active");
+}
+
+// ═══════════════════════════════════════════════════════
+// REVEAL SCREEN
+// ═══════════════════════════════════════════════════════
+function submitGuess() {
+  if (guessedArm === null) return;
+
+  // Find arm with highest average true mean (across the run)
+  // We track trueMeanHistory — compute average per arm
+  const avgTrueMeans = arms.map((_, i) => {
+    if (trueMeanHistory.length === 0) return arms[i].trueMean;
+    const sum = trueMeanHistory.reduce((s, row) => s + row[i], 0);
+    return sum / trueMeanHistory.length;
+  });
+  const bestArm = avgTrueMeans.indexOf(Math.max(...avgTrueMeans));
+
+  showScreen("screen-reveal");
+
+  const grid = document.getElementById("reveal-grid");
+  const cols = nArms <= 4 ? 1 : 1; // always single column for readability
+  grid.style.gridTemplateColumns = "1fr";
+
+  // Sort by avg true mean descending for display
+  const order = [...arms.keys()].sort((a,b) => avgTrueMeans[b] - avgTrueMeans[a]);
+
+  // Animate cards in with delay
+  grid.innerHTML = order.map((i, rank) => {
+    const color = ARM_COLORS[i];
+    const avgEarned = arms[i].chosenCount > 0 ? (arms[i].earnedTotal / arms[i].chosenCount).toFixed(1) : "—";
+    const isWinner = (i === bestArm);
+    const isGuessed = (i === guessedArm);
+    const isCorrect = isWinner && isGuessed;
+
+    let badges = "";
+    if (isWinner)  badges += `<div class="reveal-badge badge-winner" id="badge-w-${i}">★ BEST MACHINE</div>`;
+    if (isGuessed && !isCorrect) badges += `<div class="reveal-badge badge-guess" id="badge-g-${i}">YOUR GUESS</div>`;
+    if (isCorrect) badges += `<div class="reveal-badge badge-correct" id="badge-c-${i}">✓ CORRECT GUESS</div>`;
+
+    return `
+      <div class="reveal-card${isWinner?" winner":""}${isGuessed?" guessed":""}"
+        style="--slot-color:${color}; opacity:0; transition: opacity 0.4s ${rank*0.12}s, transform 0.4s ${rank*0.12}s; transform: translateY(8px);"
+        id="reveal-card-${i}">
+        <div class="reveal-circle">${ARM_NAMES[i]}</div>
+        <div>
+          <div class="reveal-name">Machine ${ARM_NAMES[i]}</div>
+          <div style="font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:2px;">sampled ${arms[i].chosenCount} times</div>
+        </div>
+        <div class="reveal-stat">
+          <div class="reveal-stat-lbl">TRUE AVG</div>
+          <div class="reveal-stat-val" style="color:${color}">${avgTrueMeans[i].toFixed(1)}</div>
+        </div>
+        <div class="reveal-stat">
+          <div class="reveal-stat-lbl">YOUR AVG</div>
+          <div class="reveal-stat-val" style="color:var(--muted)">${avgEarned}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">${badges}</div>
+      </div>
+    `;
+  }).join("");
+
+  // Trigger animations
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      order.forEach(i => {
+        const card = document.getElementById(`reveal-card-${i}`);
+        if (card) { card.style.opacity = "1"; card.style.transform = "translateY(0)"; }
+      });
+      // Show badges after cards appear
+      setTimeout(() => {
+        document.querySelectorAll(".reveal-badge").forEach(b => b.classList.add("show"));
+      }, order.length * 120 + 300);
+    });
+  });
+
+  // Result message
+  const isCorrect = guessedArm === bestArm;
+  const resultBox = document.getElementById("reveal-result-box");
+  const guessedAvg = avgTrueMeans[guessedArm].toFixed(1);
+  const bestAvg    = avgTrueMeans[bestArm].toFixed(1);
+
+  if (isCorrect) {
+    resultBox.innerHTML = `
+      <div class="reveal-result-title" style="color:var(--green)">✓ Correct!</div>
+      <div class="reveal-result-sub">
+        You correctly identified <strong>Machine ${ARM_NAMES[bestArm]}</strong> as the best machine,
+        with a true average payoff of <strong>${bestAvg} pts</strong>.
+        You completed all ${maxTrials} trials.
+      </div>`;
+  } else {
+    resultBox.innerHTML = `
+      <div class="reveal-result-title" style="color:var(--amber)">Not quite</div>
+      <div class="reveal-result-sub">
+        You chose <strong>Machine ${ARM_NAMES[guessedArm]}</strong> (avg ${guessedAvg} pts),
+        but the best machine was <strong>Machine ${ARM_NAMES[bestArm]}</strong> (avg ${bestAvg} pts).
+        You completed all ${maxTrials} trials.
+        <br><br>
+        <span style="color:var(--muted)">This is hard! The machines drift over time, so the "best" machine keeps changing.</span>
+      </div>`;
+  }
+
+  document.getElementById("reveal-subtitle").textContent =
+    `Here's how each machine actually performed over all ${maxTrials} trials.`;
+}
+
+// ═══════════════════════════════════════════════════════
+// SCREEN CONTROL
+// ═══════════════════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  window.scrollTo(0, 0);
+}
+
+function startGame() {
+  nArms     = parseInt(document.getElementById("sel-arms").value);
+  maxTrials = parseInt(document.getElementById("inp-trials").value) || 50;
+  maxTrials = Math.max(20, Math.min(300, maxTrials));
+
+  arms            = buildArms(nArms);
+  trialNum        = 0;
+  lastChosen      = null;
+  phase           = "choose";
+  guessedArm      = null;
+  trueMeanHistory = [arms.map(a => a.trueMean)];
+
+  showScreen("screen-game");
+
+  // Reset game screen
+  document.getElementById("feedback-pts").classList.add("hidden");
+  document.getElementById("feedback-sub").classList.add("hidden");
+  document.getElementById("btn-next").classList.remove("visible");
+  document.getElementById("instruction").textContent = "Choose a slot machine";
+  document.getElementById("instruction").classList.remove("highlight");
+
+  renderSlots();
+  updateHeader();
+}
+
+function playAgain() {
+  showScreen("screen-welcome");
+}
+</script>
+</body>
+</html>
